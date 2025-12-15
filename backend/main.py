@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import datetime
 import numpy as np
-import uvicorn # Import this at the top
+import uvicorn  # <--- Make sure this is imported!
 
 # Initialize FastAPI app
 app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
@@ -26,11 +26,20 @@ if not os.path.exists(model_path):
     else:
         # Print directory contents to help with debugging logs if it fails
         print(f"DEBUG: Current Directory: {os.getcwd()}")
-        print(f"DEBUG: Directory Contents: {os.listdir(os.getcwd())}")
+        try:
+            print(f"DEBUG: Directory Contents: {os.listdir(os.getcwd())}")
+        except:
+            pass
         raise FileNotFoundError(f"Trained model not found at {model_path}")
 
-model = joblib.load(model_path)
-print(f"Loaded model from {model_path}")
+try:
+    model = joblib.load(model_path)
+    print(f"Loaded model from {model_path}")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    # Create a dummy model or raise error depending on preference. 
+    # Raising error is safer so you know deployment failed.
+    raise e
 
 # --------------------------
 # Input schema
@@ -90,10 +99,12 @@ def read_root():
     return {"message": "Pakistan Inflation Predictor API is running."}
 
 # --------------------------
-# STARTUP COMMAND (THIS WAS MISSING)
+# STARTUP COMMAND (CRITICAL FIX)
 # --------------------------
 if __name__ == "__main__":
     # Railway sets the PORT environment variable. We MUST use it.
     port = int(os.environ.get("PORT", 8080))
+    
     # Host must be "0.0.0.0" to allow outside connections
+    # If you leave this as "127.0.0.1", Railway CANNOT see your app.
     uvicorn.run(app, host="0.0.0.0", port=port)
