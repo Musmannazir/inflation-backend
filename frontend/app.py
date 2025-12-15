@@ -232,7 +232,7 @@ if page == "Forecast Inflation":
         with st.spinner("Fetching prediction from live model..."):
             
             # -------------------------------------------------------------
-            # CONNECTING TO LIVE RAILWAY BACKEND
+            # CONNECTING TO LIVE RENDER BACKEND
             # -------------------------------------------------------------
             payload = {
                 "t1": lag1, 
@@ -247,8 +247,8 @@ if page == "Forecast Inflation":
             predicted_value = round(lag1*0.6 + lag2*0.2 + lag3*0.1 + cpi*0.5, 2)
             
             try:
-                # YOUR LIVE URL HERE
-                api_url = "https://inflation-backend-production.up.railway.app/predict"
+                # UPDATED: Pointing to your new Render Backend
+                api_url = "https://inflation-backend-2.onrender.com/predict"
                 
                 response = requests.post(api_url, json=payload, timeout=15)
                 
@@ -401,9 +401,10 @@ if page == "Historical Data":
     max_inflation = df_hist['Inflation_Rate'].max()
     avg_inflation = round(df_hist['Inflation_Rate'].mean(),2)
 
-    with m1: st.markdown(f"""<div class="metric-card"><div class="metric-title">Latest Recorded</div><div class="metric-value">{current_inflation}%</div></div>""", unsafe_allow_html=True)
-    with m2: st.markdown(f"""<div class="metric-card"><div class="metric-title">All-Time High</div><div class="metric-value">{max_inflation}%</div></div>""", unsafe_allow_html=True)
-    with m3: st.markdown(f"""<div class="metric-card"><div class="metric-title">Average (All Time)</div><div class="metric-value">{avg_inflation}%</div></div>""", unsafe_allow_html=True)
+    # FIXED: Added :.2f formatting to remove ugly decimal places
+    with m1: st.markdown(f"""<div class="metric-card"><div class="metric-title">Latest Recorded</div><div class="metric-value">{current_inflation:.2f}%</div></div>""", unsafe_allow_html=True)
+    with m2: st.markdown(f"""<div class="metric-card"><div class="metric-title">All-Time High</div><div class="metric-value">{max_inflation:.2f}%</div></div>""", unsafe_allow_html=True)
+    with m3: st.markdown(f"""<div class="metric-card"><div class="metric-title">Average (All Time)</div><div class="metric-value">{avg_inflation:.2f}%</div></div>""", unsafe_allow_html=True)
 
     col_chart1,col_chart2 = st.columns([2,1])
     with col_chart1:
