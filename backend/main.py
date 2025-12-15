@@ -12,7 +12,7 @@ app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
 # --------------------------
 # Load trained model
 # --------------------------
-model_path = os.path.join(os.path.dirname(__file__), "../model/model.pkl")
+model_path = os.path.join(os.path.dirname(__file__), "model/model.pkl")
 if not os.path.exists(model_path):
     raise FileNotFoundError(f"Trained model not found at {model_path}")
 model = joblib.load(model_path)
