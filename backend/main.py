@@ -12,9 +12,16 @@ app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
 # --------------------------
 # Load trained model
 # --------------------------
+# Use strict path joining to find the model inside the backend folder
 model_path = os.path.join(os.path.dirname(__file__), "model/model.pkl")
+
 if not os.path.exists(model_path):
-    raise FileNotFoundError(f"Trained model not found at {model_path}")
+    # Fallback: check if we are already inside the model folder (sometimes happens in containers)
+    if os.path.exists("model/model.pkl"):
+        model_path = "model/model.pkl"
+    else:
+        raise FileNotFoundError(f"Trained model not found at {model_path}")
+
 model = joblib.load(model_path)
 print(f"Loaded model from {model_path}")
 
@@ -74,3 +81,13 @@ def predict(data: InflationInput):
 @app.get("/")
 def read_root():
     return {"message": "Pakistan Inflation Predictor API is running."}
+
+# --------------------------
+# SERVER STARTUP (CRITICAL FOR RAILWAY)
+# --------------------------
+if __name__ == "__main__":
+    import uvicorn
+    # Railway provides the PORT environment variable.
+    # We must listen on 0.0.0.0 to be accessible from the outside.
+    port = int(os.environ.get("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)
