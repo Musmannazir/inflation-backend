@@ -83,15 +83,30 @@ def predict(data: InflationInput):
     # CRITICAL FIX: REORDER COLUMNS (Must match Model Training)
     # ---------------------------------------------------------
     expected_order = [
-        'inflation_lag_1', 'inflation_lag_2', 'inflation_lag_3', 
-        'CPI_MoM_lag_1', 'CPI_MoM_lag_2', 'CPI_MoM_lag_3', 
-        'WPI_MoM_lag_1', 'WPI_MoM_lag_2', 'WPI_MoM_lag_3', 
-        'SPI_MoM_lag_1', 'SPI_MoM_lag_2', 'SPI_MoM_lag_3', 
-        'inflation_rolling_mean_3', 
-        'CPI_MoM_rolling_mean_3', 'WPI_MoM_rolling_mean_3', 'SPI_MoM_rolling_mean_3', 
-        'month_sin', 'month_cos'
-    ]
-    
+    'inflation_lag_1',
+    'inflation_lag_2',
+    'inflation_lag_3',
+    'inflation_rolling_mean_3',
+
+    'CPI_MoM_lag_1',
+    'CPI_MoM_lag_2',
+    'CPI_MoM_lag_3',
+    'CPI_MoM_rolling_mean_3',
+
+    'WPI_MoM_lag_1',
+    'WPI_MoM_lag_2',
+    'WPI_MoM_lag_3',
+    'WPI_MoM_rolling_mean_3',
+
+    'SPI_MoM_lag_1',
+    'SPI_MoM_lag_2',
+    'SPI_MoM_lag_3',
+    'SPI_MoM_rolling_mean_3',
+
+    'month_sin',
+    'month_cos'
+]
+
     # Force the DataFrame to follow this exact order
     df = df[expected_order]
 
