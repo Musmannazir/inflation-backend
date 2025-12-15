@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import datetime
 import numpy as np
+import uvicorn # Import this at the top
 
 # Initialize FastAPI app
 app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
@@ -12,14 +13,20 @@ app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
 # --------------------------
 # Load trained model
 # --------------------------
-# Use strict path joining to find the model inside the backend folder
-model_path = os.path.join(os.path.dirname(__file__), "model/model.pkl")
+# Robust path finding to handle different server environments
+base_dir = os.path.dirname(__file__)
+model_path = os.path.join(base_dir, "model/model.pkl")
 
+# Fallback: specific check if we are inside the backend folder already
 if not os.path.exists(model_path):
-    # Fallback: check if we are already inside the model folder (sometimes happens in containers)
-    if os.path.exists("model/model.pkl"):
-        model_path = "model/model.pkl"
+    # Try looking just in the local folder
+    alternative_path = "model/model.pkl"
+    if os.path.exists(alternative_path):
+        model_path = alternative_path
     else:
+        # Print directory contents to help with debugging logs if it fails
+        print(f"DEBUG: Current Directory: {os.getcwd()}")
+        print(f"DEBUG: Directory Contents: {os.listdir(os.getcwd())}")
         raise FileNotFoundError(f"Trained model not found at {model_path}")
 
 model = joblib.load(model_path)
@@ -83,11 +90,10 @@ def read_root():
     return {"message": "Pakistan Inflation Predictor API is running."}
 
 # --------------------------
-# SERVER STARTUP (CRITICAL FOR RAILWAY)
+# STARTUP COMMAND (THIS WAS MISSING)
 # --------------------------
 if __name__ == "__main__":
-    import uvicorn
-    # Railway provides the PORT environment variable.
-    # We must listen on 0.0.0.0 to be accessible from the outside.
+    # Railway sets the PORT environment variable. We MUST use it.
     port = int(os.environ.get("PORT", 8080))
+    # Host must be "0.0.0.0" to allow outside connections
     uvicorn.run(app, host="0.0.0.0", port=port)
