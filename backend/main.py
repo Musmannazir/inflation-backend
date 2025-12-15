@@ -1,125 +1,115 @@
-import os
-import joblib
-import pandas as pd
 from fastapi import FastAPI
 from pydantic import BaseModel
-import datetime
+import pandas as pd
 import numpy as np
-import uvicorn
-
-from fastapi import FastAPI
+import joblib
+import math
+import os
 
 app = FastAPI()
 
-@app.get("/features")
-def features_test():
-    return {"DEPLOYMENT": "RENDER IS RUNNING NEW CODE"}
-
-# --------------------------
-# Initialize FastAPI app
-# --------------------------
-app = FastAPI(title="Pakistan Inflation Predictor", version="2.1")
-
-# --------------------------
-# Load trained model
-# --------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "model", "model.pkl")
-
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model not found at {MODEL_PATH}")
-
+# ----------------------------
+# Load model
+# ----------------------------
+MODEL_PATH = os.path.join("model", "model.pkl")
 model = joblib.load(MODEL_PATH)
-print("✅ Model loaded successfully")
 
-# --------------------------
-# Input schema
-# --------------------------
-class InflationInput(BaseModel):
+# EXACT feature order (from /features)
+FEATURE_ORDER = [
+    "inflation_lag_1",
+    "inflation_lag_2",
+    "inflation_lag_3",
+    "CPI_MoM_lag_1",
+    "CPI_MoM_lag_2",
+    "CPI_MoM_lag_3",
+    "WPI_MoM_lag_1",
+    "WPI_MoM_lag_2",
+    "WPI_MoM_lag_3",
+    "SPI_MoM_lag_1",
+    "SPI_MoM_lag_2",
+    "SPI_MoM_lag_3",
+    "inflation_rolling_mean_3",
+    "CPI_MoM_rolling_mean_3",
+    "WPI_MoM_rolling_mean_3",
+    "SPI_MoM_rolling_mean_3",
+    "month_sin",
+    "month_cos",
+]
+
+# ----------------------------
+# Request schema
+# ----------------------------
+class PredictRequest(BaseModel):
     t1: float
     t2: float
     t3: float
-    CPI_MoM: float | None = None
-    WPI_MoM: float | None = None
-    SPI_MoM: float | None = None
+    CPI_MoM: float
+    WPI_MoM: float
+    SPI_MoM: float
+    month: int  # 1–12
 
-# --------------------------
+# ----------------------------
+# Health check
+# ----------------------------
+@app.get("/")
+def health():
+    return {"status": "Pakistan Inflation Predictor API running"}
+
+# ----------------------------
+# Debug endpoint (keep it)
+# ----------------------------
+@app.get("/features")
+def get_model_features():
+    return {"model_features": FEATURE_ORDER}
+
+# ----------------------------
 # Prediction endpoint
-# --------------------------
+# ----------------------------
 @app.post("/predict")
-def predict(data: InflationInput):
+def predict(req: PredictRequest):
 
-    # --------------------------
-    # Create base feature dict
-    # --------------------------
-    features = {}
+    # Rolling means
+    inflation_rm3 = np.mean([req.t1, req.t2, req.t3])
+    cpi_rm3 = req.CPI_MoM
+    wpi_rm3 = req.WPI_MoM
+    spi_rm3 = req.SPI_MoM
 
-    # Inflation lags
-    features["inflation_lag_1"] = data.t1
-    features["inflation_lag_2"] = data.t2
-    features["inflation_lag_3"] = data.t3
-    features["inflation_rolling_mean_3"] = (data.t1 + data.t2 + data.t3) / 3
+    # Seasonality
+    month_sin = math.sin(2 * math.pi * req.month / 12)
+    month_cos = math.cos(2 * math.pi * req.month / 12)
 
-    # Component values (default 0)
-    CPI = data.CPI_MoM or 0.0
-    WPI = data.WPI_MoM or 0.0
-    SPI = data.SPI_MoM or 0.0
+    # Build row EXACTLY in model order
+    row = {
+        "inflation_lag_1": req.t1,
+        "inflation_lag_2": req.t2,
+        "inflation_lag_3": req.t3,
 
-    for name, val in [("CPI_MoM", CPI), ("WPI_MoM", WPI), ("SPI_MoM", SPI)]:
-        features[f"{name}_lag_1"] = val
-        features[f"{name}_lag_2"] = val
-        features[f"{name}_lag_3"] = val
-        features[f"{name}_rolling_mean_3"] = val
+        "CPI_MoM_lag_1": req.CPI_MoM,
+        "CPI_MoM_lag_2": req.CPI_MoM,
+        "CPI_MoM_lag_3": req.CPI_MoM,
 
-    # Seasonal features
-    month = datetime.datetime.now().month
-    features["month_sin"] = np.sin(2 * np.pi * month / 12)
-    features["month_cos"] = np.cos(2 * np.pi * month / 12)
+        "WPI_MoM_lag_1": req.WPI_MoM,
+        "WPI_MoM_lag_2": req.WPI_MoM,
+        "WPI_MoM_lag_3": req.WPI_MoM,
 
-    # --------------------------
-    # Convert to DataFrame
-    # --------------------------
-    df = pd.DataFrame([features])
+        "SPI_MoM_lag_1": req.SPI_MoM,
+        "SPI_MoM_lag_2": req.SPI_MoM,
+        "SPI_MoM_lag_3": req.SPI_MoM,
 
-    # --------------------------
-    # 🔐 ALIGN FEATURES WITH MODEL (CRITICAL FIX)
-    # --------------------------
-    model_features = model.get_booster().feature_names
+        "inflation_rolling_mean_3": inflation_rm3,
+        "CPI_MoM_rolling_mean_3": cpi_rm3,
+        "WPI_MoM_rolling_mean_3": wpi_rm3,
+        "SPI_MoM_rolling_mean_3": spi_rm3,
 
-    for col in model_features:
-        if col not in df.columns:
-            df[col] = 0.0
+        "month_sin": month_sin,
+        "month_cos": month_cos,
+    }
 
-    df = df[model_features]
+    df = pd.DataFrame([row], columns=FEATURE_ORDER)
 
-    print("MODEL EXPECTS:", model_features)
-    print("SENDING:", df.columns.tolist())
-
-    # --------------------------
-    # Predict
-    # --------------------------
     prediction = float(model.predict(df)[0])
 
     return {
-        "predicted_inflation_next_month": round(prediction, 2)
-    }
-    
-@app.get("/features")
-def get_model_features():
-    return {
-        "model_features": model.get_booster().feature_names
+        "predicted_inflation": round(prediction, 2)
     }
 
-# --------------------------
-# Health check
-# --------------------------
-@app.get("/")
-def root():
-    return {"status": "Pakistan Inflation Predictor API running"}
-
-# --------------------------
-# Local run
-# --------------------------
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    uvicorn.run(app, host="0.0.0.0", port=port)
