@@ -1,4 +1,3 @@
-# FORCE UPDATE: Fixing column order mismatch
 import os
 import joblib
 import pandas as pd
@@ -17,18 +16,22 @@ app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
 base_dir = os.path.dirname(__file__)
 model_path = os.path.join(base_dir, "model/model.pkl")
 
+# Force-check model existence
 if not os.path.exists(model_path):
+    # Try alternate path just in case
     alternative_path = "model/model.pkl"
     if os.path.exists(alternative_path):
         model_path = alternative_path
     else:
+        print(f"DEBUG: Current Dir: {os.getcwd()}")
+        print(f"DEBUG: Files: {os.listdir(os.getcwd())}")
         raise FileNotFoundError(f"Trained model not found at {model_path}")
 
 try:
     model = joblib.load(model_path)
-    print(f"Loaded model from {model_path}")
+    print(f"SUCCESS: Loaded model from {model_path}")
 except Exception as e:
-    print(f"Error loading model: {e}")
+    print(f"CRITICAL ERROR: Failed to load model. {e}")
     raise e
 
 # --------------------------
@@ -77,8 +80,7 @@ def predict(data: InflationInput):
     df['month_cos'] = [np.cos(2 * np.pi * current_month / 12)]
 
     # ---------------------------------------------------------
-    # CRITICAL FIX: FORCE EXACT COLUMN ORDER
-    # This matches the "Expected" list from your error logs
+    # CRITICAL FIX: REORDER COLUMNS (Must match Model Training)
     # ---------------------------------------------------------
     expected_order = [
         'inflation_lag_1', 'inflation_lag_2', 'inflation_lag_3', 
@@ -90,8 +92,11 @@ def predict(data: InflationInput):
         'month_sin', 'month_cos'
     ]
     
-    # Reorder dataframe
+    # Force the DataFrame to follow this exact order
     df = df[expected_order]
+
+    # DEBUG PRINT to prove new code is running
+    print("DEBUG: Columns sent to model:", df.columns.tolist())
 
     # Predict
     prediction = model.predict(df)[0]
