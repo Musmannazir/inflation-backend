@@ -118,6 +118,7 @@ st.markdown("""
 @st.cache_data
 def load_historical_data():
     try:
+        # NOTE: Ensure this path is correct for your local setup
         df = pd.read_csv("../data/pakistan_cpi.csv")
         df['Date'] = pd.to_datetime(df['Date'])
         df['MoM_Change'] = df['Inflation_Rate'].pct_change()*100
@@ -217,29 +218,51 @@ if page == "Forecast Inflation":
 
         with c4:
             st.markdown('CPI MoM <span title="Enter the latest CPI monthly change (%)">ℹ️</span>', unsafe_allow_html=True)
-            cpi = st.number_input("CPI_Val", min_value=-10.0, max_value=10.0, value=float(df_hist['CPI_MoM'].iloc[-1]), step=0.01, label_visibility="collapsed")
+            cpi = st.number_input("CPI_Val", min_value=-100.0, max_value=100.0, value=float(df_hist['CPI_MoM'].iloc[-1]), step=0.01, label_visibility="collapsed")
         with c5:
             st.markdown('WPI MoM <span title="Enter the latest WPI monthly change (%)">ℹ️</span>', unsafe_allow_html=True)
-            wpi = st.number_input("WPI_Val", min_value=-10.0, max_value=10.0, value=float(df_hist['WPI_MoM'].iloc[-1]), step=0.01, label_visibility="collapsed")
+            wpi = st.number_input("WPI_Val", min_value=-100.0, max_value=100.0, value=float(df_hist['WPI_MoM'].iloc[-1]), step=0.01, label_visibility="collapsed")
         with c6:
             st.markdown('SPI MoM <span title="Enter the latest SPI monthly change (%)">ℹ️</span>', unsafe_allow_html=True)
-            spi = st.number_input("SPI_Val", min_value=-10.0, max_value=10.0, value=float(df_hist['SPI_MoM'].iloc[-1]), step=0.01, label_visibility="collapsed")
+            spi = st.number_input("SPI_Val", min_value=-100.0, max_value=100.0, value=float(df_hist['SPI_MoM'].iloc[-1]), step=0.01, label_visibility="collapsed")
 
     rolling_inflation = round((lag1+lag2+lag3)/3,2)
 
     if st.button("✨ Predict Next Month Inflation (Real-Time)"):
-        with st.spinner("Fetching prediction from ML model..."):
-            time.sleep(0.5)
-            # Dummy logic for fallback
+        with st.spinner("Fetching prediction from live model..."):
+            
+            # -------------------------------------------------------------
+            # CONNECTING TO LIVE RAILWAY BACKEND
+            # -------------------------------------------------------------
+            payload = {
+                "t1": lag1, 
+                "t2": lag2, 
+                "t3": lag3, 
+                "CPI_MoM": cpi, 
+                "WPI_MoM": wpi, 
+                "SPI_MoM": spi
+            }
+            
+            # Default fallback calculation just in case
             predicted_value = round(lag1*0.6 + lag2*0.2 + lag3*0.1 + cpi*0.5, 2)
             
-            # --- API REQUEST (Uncomment when API is live) ---
-            # payload = {"t1": lag1, "t2": lag2, "t3": lag3, "CPI_MoM": cpi, "WPI_MoM": wpi, "SPI_MoM": spi}
-            # try:
-            #     response = requests.post("http://127.0.0.1:8000/predict", json=payload, timeout=5)
-            #     predicted_value = response.json()['predicted_inflation_next_month']
-            # except:
-            #     pass
+            try:
+                # YOUR LIVE URL HERE
+                api_url = "https://inflation-backend-production.up.railway.app/predict"
+                
+                response = requests.post(api_url, json=payload, timeout=15)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    predicted_value = data['predicted_inflation_next_month']
+                    st.success("Successfully connected to live model!")
+                else:
+                    st.warning(f"Backend Error ({response.status_code}). Using fallback estimate.")
+            except Exception as e:
+                st.error(f"Connection Failed: {e}")
+                st.warning("Using fallback estimation logic.")
+
+            # -------------------------------------------------------------
 
             st.markdown("### 📊 Real-Time Prediction Results")
             res_col1,res_col2 = st.columns([1,2])
