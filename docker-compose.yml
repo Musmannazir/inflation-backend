@@ -1,0 +1,19 @@
+
+
+services:
+  backend:
+    build: ./backend
+    container_name: inflation-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./model:/app/model
+      - ./data:/app/data
+
+  frontend:
+    build: ./frontend
+    container_name: inflation-frontend
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
