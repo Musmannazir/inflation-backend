@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import datetime
 import numpy as np
-import uvicorn  # <--- Make sure this is imported!
+import uvicorn
 
 # Initialize FastAPI app
 app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
@@ -13,23 +13,14 @@ app = FastAPI(title="Pakistan Inflation Predictor", version="2.0")
 # --------------------------
 # Load trained model
 # --------------------------
-# Robust path finding to handle different server environments
 base_dir = os.path.dirname(__file__)
 model_path = os.path.join(base_dir, "model/model.pkl")
 
-# Fallback: specific check if we are inside the backend folder already
 if not os.path.exists(model_path):
-    # Try looking just in the local folder
     alternative_path = "model/model.pkl"
     if os.path.exists(alternative_path):
         model_path = alternative_path
     else:
-        # Print directory contents to help with debugging logs if it fails
-        print(f"DEBUG: Current Directory: {os.getcwd()}")
-        try:
-            print(f"DEBUG: Directory Contents: {os.listdir(os.getcwd())}")
-        except:
-            pass
         raise FileNotFoundError(f"Trained model not found at {model_path}")
 
 try:
@@ -37,27 +28,25 @@ try:
     print(f"Loaded model from {model_path}")
 except Exception as e:
     print(f"Error loading model: {e}")
-    # Create a dummy model or raise error depending on preference. 
-    # Raising error is safer so you know deployment failed.
     raise e
 
 # --------------------------
 # Input schema
 # --------------------------
 class InflationInput(BaseModel):
-    # Only last 3 months of inflation rates are required
-    t1: float  # Last month
-    t2: float  # 2 months ago
-    t3: float  # 3 months ago
+    t1: float
+    t2: float
+    t3: float
     CPI_MoM: float = None
     WPI_MoM: float = None
     SPI_MoM: float = None
+
 # --------------------------
 # Prediction endpoint
 # --------------------------
 @app.post("/predict")
 def predict(data: InflationInput):
-    # Prepare DataFrame with all required features
+    # Prepare DataFrame
     df = pd.DataFrame()
 
     # 1. Add Inflation Lags
@@ -65,8 +54,7 @@ def predict(data: InflationInput):
     df['inflation_lag_2'] = [data.t2]
     df['inflation_lag_3'] = [data.t3]
 
-    # 2. Add Component Lags (CPI, WPI, SPI)
-    # We loop through to add them cleanly
+    # 2. Add Component Lags
     for col, val in zip(['CPI_MoM', 'WPI_MoM', 'SPI_MoM'], 
                         [data.CPI_MoM, data.WPI_MoM, data.SPI_MoM]):
         if val is None: val = 0.0
@@ -74,7 +62,7 @@ def predict(data: InflationInput):
         df[f'{col}_lag_2'] = [val]
         df[f'{col}_lag_3'] = [val]
 
-    # 3. Add Rolling Means (Inflation first, then Components)
+    # 3. Add Rolling Means
     df['inflation_rolling_mean_3'] = [(data.t1 + data.t2 + data.t3)/3]
     
     for col, val in zip(['CPI_MoM', 'WPI_MoM', 'SPI_MoM'], 
@@ -88,7 +76,8 @@ def predict(data: InflationInput):
     df['month_cos'] = [np.cos(2 * np.pi * current_month / 12)]
 
     # ---------------------------------------------------------
-    # CRITICAL FIX: REORDER COLUMNS TO MATCH TRAINED MODEL
+    # CRITICAL FIX: FORCE EXACT COLUMN ORDER
+    # This matches the "Expected" list from your error logs
     # ---------------------------------------------------------
     expected_order = [
         'inflation_lag_1', 'inflation_lag_2', 'inflation_lag_3', 
@@ -100,28 +89,22 @@ def predict(data: InflationInput):
         'month_sin', 'month_cos'
     ]
     
-    # Force the dataframe to use this exact order
+    # Reorder dataframe
     df = df[expected_order]
 
     # Predict
     prediction = model.predict(df)[0]
 
-    # Return response
     return {"predicted_inflation_next_month": round(float(prediction), 2)}
-# --------------------------
-# Root endpoint for testing
-# --------------------------
+
 @app.get("/")
 def read_root():
     return {"message": "Pakistan Inflation Predictor API is running."}
 
 # --------------------------
-# STARTUP COMMAND (CRITICAL FIX)
+# STARTUP COMMAND
 # --------------------------
 if __name__ == "__main__":
-    # Railway sets the PORT environment variable. We MUST use it.
     port = int(os.environ.get("PORT", 8080))
-    
-    # Host must be "0.0.0.0" to allow outside connections
-    # If you leave this as "127.0.0.1", Railway CANNOT see your app.
+    print(f"Starting server on 0.0.0.0:{port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
