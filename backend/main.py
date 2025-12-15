@@ -7,6 +7,14 @@ import datetime
 import numpy as np
 import uvicorn
 
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/features")
+def features_test():
+    return {"DEPLOYMENT": "RENDER IS RUNNING NEW CODE"}
+
 # --------------------------
 # Initialize FastAPI app
 # --------------------------
@@ -94,6 +102,12 @@ def predict(data: InflationInput):
 
     return {
         "predicted_inflation_next_month": round(prediction, 2)
+    }
+    
+@app.get("/features")
+def get_model_features():
+    return {
+        "model_features": model.get_booster().feature_names
     }
 
 # --------------------------
