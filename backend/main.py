@@ -52,7 +52,6 @@ class InflationInput(BaseModel):
     CPI_MoM: float = None
     WPI_MoM: float = None
     SPI_MoM: float = None
-
 # --------------------------
 # Prediction endpoint
 # --------------------------
@@ -61,36 +60,54 @@ def predict(data: InflationInput):
     # Prepare DataFrame with all required features
     df = pd.DataFrame()
 
-    # Lag features (inflation)
+    # 1. Add Inflation Lags
     df['inflation_lag_1'] = [data.t1]
     df['inflation_lag_2'] = [data.t2]
     df['inflation_lag_3'] = [data.t3]
 
-    # Rolling mean
-    df['inflation_rolling_mean_3'] = [(data.t1 + data.t2 + data.t3)/3]
-
-    # If monthly CPI/WPI/SPI are provided, create lag & rolling for them too
-    # Otherwise fill with zeros
+    # 2. Add Component Lags (CPI, WPI, SPI)
+    # We loop through to add them cleanly
     for col, val in zip(['CPI_MoM', 'WPI_MoM', 'SPI_MoM'], 
                         [data.CPI_MoM, data.WPI_MoM, data.SPI_MoM]):
-        if val is None:
-            val = 0.0
+        if val is None: val = 0.0
         df[f'{col}_lag_1'] = [val]
         df[f'{col}_lag_2'] = [val]
         df[f'{col}_lag_3'] = [val]
+
+    # 3. Add Rolling Means (Inflation first, then Components)
+    df['inflation_rolling_mean_3'] = [(data.t1 + data.t2 + data.t3)/3]
+    
+    for col, val in zip(['CPI_MoM', 'WPI_MoM', 'SPI_MoM'], 
+                        [data.CPI_MoM, data.WPI_MoM, data.SPI_MoM]):
+        if val is None: val = 0.0
         df[f'{col}_rolling_mean_3'] = [val]
 
-    # Add seasonal features (month sin/cos)
+    # 4. Add Seasonal Features
     current_month = datetime.datetime.now().month
     df['month_sin'] = [np.sin(2 * np.pi * current_month / 12)]
     df['month_cos'] = [np.cos(2 * np.pi * current_month / 12)]
+
+    # ---------------------------------------------------------
+    # CRITICAL FIX: REORDER COLUMNS TO MATCH TRAINED MODEL
+    # ---------------------------------------------------------
+    expected_order = [
+        'inflation_lag_1', 'inflation_lag_2', 'inflation_lag_3', 
+        'CPI_MoM_lag_1', 'CPI_MoM_lag_2', 'CPI_MoM_lag_3', 
+        'WPI_MoM_lag_1', 'WPI_MoM_lag_2', 'WPI_MoM_lag_3', 
+        'SPI_MoM_lag_1', 'SPI_MoM_lag_2', 'SPI_MoM_lag_3', 
+        'inflation_rolling_mean_3', 
+        'CPI_MoM_rolling_mean_3', 'WPI_MoM_rolling_mean_3', 'SPI_MoM_rolling_mean_3', 
+        'month_sin', 'month_cos'
+    ]
+    
+    # Force the dataframe to use this exact order
+    df = df[expected_order]
 
     # Predict
     prediction = model.predict(df)[0]
 
     # Return response
     return {"predicted_inflation_next_month": round(float(prediction), 2)}
-
 # --------------------------
 # Root endpoint for testing
 # --------------------------
