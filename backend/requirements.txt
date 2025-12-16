@@ -4,7 +4,7 @@ pandas
 numpy
 joblib
 pydantic
-xgboost==1.7.6
+xgboost==3.1.2
 requests
 python-multipart
 scikit-learn
