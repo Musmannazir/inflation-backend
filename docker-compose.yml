@@ -1,4 +1,4 @@
-
+version: '3.8'
 
 services:
   backend:
@@ -7,13 +7,17 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./model:/app/model
-      - ./data:/app/data
+      # CORRECTED PATHS: Point to ./backend/model instead of ./model
+      - ./backend/model:/app/model
+      - ./backend/data:/app/data
 
   frontend:
     build: ./frontend
     container_name: inflation-frontend
     ports:
       - "8501:8501"
+    environment:
+      # This variable allows your frontend code to find the backend
+      - BACKEND_URL=http://backend:8000
     depends_on:
       - backend

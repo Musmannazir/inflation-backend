@@ -234,14 +234,16 @@ if page == "Forecast Inflation":
             # -------------------------------------------------------------
             # CONNECTING TO LIVE RENDER BACKEND
             # -------------------------------------------------------------
+            current_month = datetime.datetime.now().month
             payload = {
-                "t1": lag1, 
-                "t2": lag2, 
-                "t3": lag3, 
-                "CPI_MoM": cpi, 
-                "WPI_MoM": wpi, 
-                "SPI_MoM": spi
-            }
+    "t1": float(lag1),
+    "t2": float(lag2),
+    "t3": float(lag3),
+    "CPI_MoM": float(cpi),
+    "WPI_MoM": float(wpi),
+    "SPI_MoM": float(spi),
+    "month": int(current_month)
+}
             
             # Default fallback calculation just in case
             predicted_value = round(lag1*0.6 + lag2*0.2 + lag3*0.1 + cpi*0.5, 2)
@@ -254,7 +256,7 @@ if page == "Forecast Inflation":
                 
                 if response.status_code == 200:
                     data = response.json()
-                    predicted_value = data['predicted_inflation_next_month']
+                    predicted_value = data.get('predicted_inflation', predicted_value)
                     st.success("Successfully connected to live model!")
                 else:
                     st.warning(f"Backend Error ({response.status_code}). Using fallback estimate.")

@@ -67,7 +67,6 @@ def get_model_features():
 # ----------------------------
 @app.post("/predict")
 def predict(req: PredictRequest):
-
     # Rolling means
     inflation_rm3 = np.mean([req.t1, req.t2, req.t3])
     cpi_rm3 = req.CPI_MoM

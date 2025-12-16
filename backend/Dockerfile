@@ -1,18 +1,23 @@
-# Use official Python image
-FROM python:3.11-slim
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
-# Set working directory
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy requirements and install
+# Copy the requirements file into the container
 COPY requirements.txt .
+
+# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
+# Copy the rest of the application code
 COPY . .
 
-# Expose port for FastAPI
+# Make sure the start script is executable
+RUN chmod +x start.sh
+
+# Expose the port the app runs on (usually 8000 for FastAPI/Django or 5000 for Flask)
 EXPOSE 8000
 
-# Run uvicorn server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run the start script
+CMD ["./start.sh"]
