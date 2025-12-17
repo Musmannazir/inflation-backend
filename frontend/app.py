@@ -250,7 +250,7 @@ if page == "Forecast Inflation":
             
             try:
                 # UPDATED: Pointing to your new Render Backend
-                api_url = "https://inflation-backend-6.onrender.com/predict"
+                api_url = "http://localhost:8000/predict"
                 
                 response = requests.post(api_url, json=payload, timeout=15)
                 
