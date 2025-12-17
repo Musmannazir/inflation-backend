@@ -1,23 +1,21 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    container_name: inflation-backend
+  inflation-app:
+    # Build from the current root directory using the main Dockerfile
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: inflation-app-container
+    
+    # Expose BOTH ports (FastAPI & Streamlit) from the single container
     ports:
-      - "8000:8000"
-    volumes:
-      # CORRECTED PATHS: Point to ./backend/model instead of ./model
-      - ./backend/model:/app/model
-      - ./backend/data:/app/data
-
-  frontend:
-    build: ./frontend
-    container_name: inflation-frontend
-    ports:
-      - "8501:8501"
+      - "8000:8000"  # Backend
+      - "8501:8501"  # Frontend
+      
+    # Environment variables
     environment:
-      # This variable allows your frontend code to find the backend
-      - BACKEND_URL=http://backend:8000
-    depends_on:
-      - backend
+      - PORT=8501
+      # Note: We don't need BACKEND_URL here because they are in the same container
+      # The frontend code already talks to 'http://localhost:8000'
