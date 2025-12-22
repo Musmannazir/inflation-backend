@@ -47,7 +47,7 @@ Unlike static notebooks, this is a **Full-Stack MLOps** solution that integrates
 If you have Docker installed, you can run the entire system with one command:
 ---
 # Clone the repository
-git clone [https://github.com/Musmannazir/Inflation-Forecasting-System.git](https://github.com/Musmannazir/Inflation-Forecasting-System.git)
+git clone [https://github.com/Musmannazir/Inflation-Forecasting-System.git]((https://github.com/Musmannazir/inflation-backend))
 cd Inflation-Forecasting-System
 
 # Build and Run containers
@@ -78,12 +78,7 @@ Mr. Ali Imran Sandhu (Course Instructor)
 
 Mr. Asim Shah (Lab Instructor)
 
-📬 Contact
-Muhammad Usman Nazir
 
-GitHub: Musmannazir
-
-LinkedIn: Connect with me
 
 
 
