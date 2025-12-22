@@ -41,28 +41,11 @@ Unlike static notebooks, this is a **Full-Stack MLOps** solution that integrates
 
 ---
 
-## 📸 Project Screenshots
-
-### 1. Interactive Forecasting Dashboard
-*Users can input Lag values and Month-on-Month (MoM) changes to simulate scenarios.*
-![Dashboard Screenshot](<img width="1920" height="836" alt="image" src="https://github.com/user-attachments/assets/41b912e3-ef4d-4fb0-80f4-87f3c28bbdd5" />
-)
-*(Place your screenshot of the inputs here)*
-
-### 2. Real-Time News Analysis
-*The system scrapes live headlines to detect inflationary pressure.*
-![News Screenshot](<img width="1898" height="841" alt="image" src="https://github.com/user-attachments/assets/e92b0621-f301-4ae9-81ff-1f6e3de1ea5c" />
-)
-*(Place your screenshot of the news section here)*
-
----
-
 ## ⚙️ Installation & Running Locally
 
 ### Option 1: Using Docker (Recommended)
 If you have Docker installed, you can run the entire system with one command:
-
-```bash
+---
 # Clone the repository
 git clone [https://github.com/Musmannazir/Inflation-Forecasting-System.git](https://github.com/Musmannazir/Inflation-Forecasting-System.git)
 cd Inflation-Forecasting-System
@@ -101,4 +84,9 @@ Muhammad Usman Nazir
 GitHub: Musmannazir
 
 LinkedIn: Connect with me
+
+
+
+
+
 
